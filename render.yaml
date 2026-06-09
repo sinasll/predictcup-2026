@@ -1,7 +1,7 @@
 services:
   - type: web
     name: predictcup-backend
-    env: node
+    runtime: node
     region: oregon
     plan: free
     buildCommand: npm install && npm run prisma:generate
@@ -18,8 +18,7 @@ services:
       - key: FRONTEND_URL
         value: https://your-frontend.vercel.app
 
-  - type: pserv
-    name: predictcup-db
-    env: postgresql
+databases:
+  - name: predictcup-db
     region: oregon
     plan: free
