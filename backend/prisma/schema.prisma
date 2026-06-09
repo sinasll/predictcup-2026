@@ -1,0 +1,86 @@
+// Prisma schema for PREDICTCUP 2026
+// Production-ready, minimal
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  telegram_id       String   @id @unique
+  username          String?
+  first_name        String?
+  last_name         String?
+  photo_url         String?
+  language_code     String?  @default("en")
+  xp                Int      @default(0)
+  level             Int      @default(1)
+  streak_count      Int      @default(0)
+  last_prediction_date DateTime?
+  role              String   @default("USER") // USER | ADMIN
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  predictions       Prediction[]
+  owned_leagues     League[]     @relation("LeagueOwner")
+  league_memberships LeagueMember[]
+}
+
+model Match {
+  id            Int      @id @default(autoincrement())
+  home_team     String
+  away_team     String
+  start_time    DateTime
+  status        String   @default("SCHEDULED") // SCHEDULED | LOCKED | LIVE | FINISHED | CANCELED
+  home_score    Int?
+  away_score    Int?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  predictions   Prediction[]
+}
+
+model Prediction {
+  id                   Int      @id @default(autoincrement())
+  user_id              String
+  match_id             Int
+  predicted_home_score Int
+  predicted_away_score Int
+  predicted_winner     String?  // HOME | AWAY | DRAW
+  points_awarded       Int      @default(0)
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  user  User  @relation(fields: [user_id], references: [telegram_id])
+  match Match @relation(fields: [match_id], references: [id])
+
+  @@unique([user_id, match_id])
+}
+
+model League {
+  id          Int      @id @default(autoincrement())
+  name        String
+  owner_id    String
+  invite_code String   @unique
+  created_at  DateTime @default(now())
+
+  owner    User           @relation("LeagueOwner", fields: [owner_id], references: [telegram_id])
+  members  LeagueMember[]
+}
+
+model LeagueMember {
+  id         Int      @id @default(autoincrement())
+  league_id  Int
+  user_id    String
+  role       String   @default("MEMBER") // ADMIN | MEMBER
+  joined_at  DateTime @default(now())
+
+  league League @relation(fields: [league_id], references: [id])
+  user   User   @relation(fields: [user_id], references: [telegram_id])
+
+  @@unique([league_id, user_id])
+}

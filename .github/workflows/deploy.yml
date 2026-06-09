@@ -1,0 +1,18 @@
+name: Deploy PREDICTCUP 2026
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Deploy to Render
+        run: |
+          curl -X POST "https://api.render.com/deploy/srv-xxx?key=your-render-key"
+        # Note: Use Render's GitHub integration instead for production
+
+  # For frontend on Vercel, add separate workflow or use Vercel CLI

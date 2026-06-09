@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PREDICTCUP 2026</title>
+    
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#00539C">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Noto+Sans+Arabic:wght@400;500;600&amp;display=swap');
+        
+        :root {
+            --primary: #00539C;
+            --secondary: #FFD662;
+            --accent: #F2B759;
+        }
+        
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        
+        .rtl {
+            font-family: 'Noto Sans Arabic', 'Inter', system-ui, sans-serif;
+            direction: rtl;
+            text-align: right;
+        }
+        
+        .primary { color: #00539C; }
+        .secondary { color: #FFD662; }
+        .accent { color: #F2B759; }
+        
+        .bg-primary { background-color: #00539C; }
+        .bg-secondary { background-color: #FFD662; }
+        .bg-accent { background-color: #F2B759; }
+        
+        .match-card {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .match-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        }
+        
+        .status-scheduled { background-color: #E0F2FE; color: #00539C; }
+        .status-locked { background-color: #FEF3C7; color: #92400E; }
+        .status-live { background-color: #DCFCE7; color: #166534; animation: pulse 2s infinite; }
+        .status-finished { background-color: #F3E8FF; color: #581C87; }
+        
+        .nav-tab {
+            transition: all 0.2s ease;
+        }
+        
+        .nav-tab.active {
+            border-bottom: 3px solid #00539C;
+            color: #00539C;
+            font-weight: 600;
+        }
+        
+        .prediction-form {
+            animation: slideUp 0.3s ease-out;
+        }
+        
+        .leaderboard-row {
+            transition: background-color 0.1s ease;
+        }
+        
+        .leaderboard-row:hover {
+            background-color: #F8FAFC;
+        }
+        
+        .telegram-btn {
+            background: linear-gradient(135deg, #00539C, #003D73);
+        }
+        
+        .section {
+            animation: fadeIn 0.4s ease-out;
+        }
+        
+        .mini-app {
+            max-width: 480px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 0 0 1px #E2E8F0;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .match-time {
+            font-variant-numeric: tabular-nums;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+    <!-- Telegram Mini App Container -->
+    <div id="app" class="mini-app min-h-screen bg-white shadow-xl mx-auto">
+        
+        <!-- Header -->
+        <div class="bg-primary text-white px-4 py-4 sticky top-0 z-50">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 bg-secondary rounded-xl flex items-center justify-center">
+                        <span class="text-primary font-black text-2xl">🏆</span>
+                    </div>
+                    <div>
+                        <h1 id="app-title" class="font-bold text-2xl tracking-tight">PREDICTCUP 2026</h1>
+                        <p id="welcome-text" class="text-blue-200 text-xs -mt-1">World Cup Predictions</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <!-- User Avatar -->
+                    <div id="user-avatar" 
+                         class="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center text-sm font-bold border border-white/30 cursor-pointer"
+                         onclick="showProfile()">
+                        👤
+                    </div>
+                    
+                    <!-- Language -->
+                    <div class="relative">
+                        <select id="lang-select" onchange="changeLanguage()" 
+                                class="bg-white/10 text-white text-xs px-2 py-1 rounded-lg border border-white/20 focus:outline-none">
+                            <option value="en">EN</option>
+                            <option value="ar">AR</option>
+                            <option value="ku">KU</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="flex border-b border-slate-200 bg-white sticky top-[73px] z-40">
+            <div onclick="switchTab('matches')" class="nav-tab flex-1 py-3 text-center text-sm font-medium cursor-pointer active" id="tab-matches">
+                ⚽ <span data-i18n="matches">Matches</span>
+            </div>
+            <div onclick="switchTab('leagues')" class="nav-tab flex-1 py-3 text-center text-sm font-medium cursor-pointer" id="tab-leagues">
+                🏆 <span data-i18n="leagues">Leagues</span>
+            </div>
+            <div onclick="switchTab('leaderboard')" class="nav-tab flex-1 py-3 text-center text-sm font-medium cursor-pointer" id="tab-leaderboard">
+                📊 <span data-i18n="leaderboard">Leaderboard</span>
+            </div>
+            <div onclick="switchTab('profile')" class="nav-tab flex-1 py-3 text-center text-sm font-medium cursor-pointer" id="tab-profile">
+                👤 <span data-i18n="profile">Profile</span>
+            </div>
+        </div>
+
+        <!-- Content Areas -->
+        
+        <!-- MATCHES TAB -->
+        <div id="content-matches" class="section p-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="font-semibold text-lg text-slate-800" data-i18n="matches">Matches</h2>
+                <button onclick="refreshMatches()" 
+                        class="text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center gap-1 text-slate-600">
+                    <span>↻</span> <span class="hidden sm:inline">Refresh</span>
+                </button>
+            </div>
+            
+            <div id="matches-list" class="space-y-3">
+                <!-- Populated by JS -->
+            </div>
+            
+            <div id="no-matches" class="hidden text-center py-8 text-slate-400">
+                No matches scheduled yet.
+            </div>
+        </div>
+
+        <!-- LEAGUES TAB -->
+        <div id="content-leagues" class="section p-4 hidden">
+            <div class="flex gap-2 mb-4">
+                <button onclick="showCreateLeagueModal()" 
+                        class="flex-1 bg-primary text-white py-2.5 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2">
+                    ➕ <span data-i18n="create_league">Create League</span>
+                </button>
+                <button onclick="showJoinLeagueModal()" 
+                        class="flex-1 border border-primary text-primary py-2.5 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2">
+                    🔗 <span data-i18n="join_league">Join</span>
+                </button>
+            </div>
+            
+            <h3 class="font-semibold mb-3 text-slate-700" data-i18n="my_leagues">My Leagues</h3>
+            <div id="my-leagues-list" class="space-y-2">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+
+        <!-- LEADERBOARD TAB -->
+        <div id="content-leaderboard" class="section p-4 hidden">
+            <div class="flex gap-2 mb-4">
+                <button onclick="loadGlobalLeaderboard()" class="flex-1 py-2 text-sm font-medium bg-primary text-white rounded-2xl">Global</button>
+                <button onclick="loadMyLeaguesForLeaderboard()" class="flex-1 py-2 text-sm font-medium border border-slate-300 rounded-2xl">League</button>
+            </div>
+            
+            <div id="leaderboard-list" class="space-y-1">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+
+        <!-- PROFILE TAB -->
+        <div id="content-profile" class="section p-4 hidden">
+            <div id="profile-content">
+                <!-- Populated by JS -->
+            </div>
+            
+            <!-- Admin Button -->
+            <div id="admin-section" class="hidden mt-6">
+                <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="text-amber-600">👑</span>
+                        <span class="font-semibold text-amber-700">Admin Panel</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="showAdminMatches()" class="text-xs py-2 bg-white border border-amber-300 rounded-xl text-amber-700">Manage Matches</button>
+                        <button onclick="showAdminAnalytics()" class="text-xs py-2 bg-white border border-amber-300 rounded-xl text-amber-700">Analytics</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Prediction Modal -->
+    <div id="prediction-modal" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-end justify-center">
+        <div class="bg-white w-full max-w-[480px] rounded-t-3xl p-6 prediction-form">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-semibold text-lg" id="modal-match-title"></h3>
+                <button onclick="closePredictionModal()" class="text-2xl text-slate-400">×</button>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1.5" data-i18n="home_score">Home Score</label>
+                        <input type="number" id="home-score" value="1" min="0" max="10"
+                               class="w-full px-4 py-3 border border-slate-200 rounded-2xl text-center text-xl font-semibold focus:outline-none focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1.5" data-i18n="away_score">Away Score</label>
+                        <input type="number" id="away-score" value="1" min="0" max="10"
+                               class="w-full px-4 py-3 border border-slate-200 rounded-2xl text-center text-xl font-semibold focus:outline-none focus:border-primary">
+                    </div>
+                </div>
+                
+                <div class="bg-slate-50 rounded-2xl p-3 text-xs text-slate-500">
+                    <div class="flex justify-between">
+                        <span>Winner bonus: +3</span>
+                        <span>Exact score: +5</span>
+                    </div>
+                </div>
+                
+                <button onclick="submitPrediction()" 
+                        class="w-full bg-primary hover:bg-[#003D73] transition-colors text-white py-4 rounded-2xl font-semibold text-lg">
+                    <span data-i18n="submit">Submit Prediction</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create League Modal -->
+    <div id="create-league-modal" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-end justify-center">
+        <div class="bg-white w-full max-w-[480px] rounded-t-3xl p-6">
+            <h3 class="font-semibold text-lg mb-4" data-i18n="create_league">Create League</h3>
+            <input type="text" id="league-name" placeholder="League name..." 
+                   class="w-full px-4 py-3 border border-slate-200 rounded-2xl mb-4">
+            <div class="flex gap-3">
+                <button onclick="closeCreateLeagueModal()" class="flex-1 py-3 border border-slate-300 rounded-2xl">Cancel</button>
+                <button onclick="createLeague()" class="flex-1 py-3 bg-primary text-white rounded-2xl">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Join League Modal -->
+    <div id="join-league-modal" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-end justify-center">
+        <div class="bg-white w-full max-w-[480px] rounded-t-3xl p-6">
+            <h3 class="font-semibold text-lg mb-4" data-i18n="join_league">Join League</h3>
+            <input type="text" id="invite-code" placeholder="Invite code (e.g. ABC123XY)" 
+                   class="w-full px-4 py-3 border border-slate-200 rounded-2xl mb-4 uppercase">
+            <div class="flex gap-3">
+                <button onclick="closeJoinLeagueModal()" class="flex-1 py-3 border border-slate-300 rounded-2xl">Cancel</button>
+                <button onclick="joinLeague()" class="flex-1 py-3 bg-primary text-white rounded-2xl">Join</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-2xl text-sm shadow-xl z-[200]"></div>
+
+    <script>
+        // ==================== CONFIG ====================
+        const API_BASE = window.location.origin.includes('localhost') 
+            ? 'http://localhost:3000' 
+            : 'https://your-backend.onrender.com'; // CHANGE THIS AFTER DEPLOY
+        
+        let currentUser = null;
+        let currentLanguage = 'en';
+        let translations = {};
+        let currentMatchId = null;
+        let matchesData = [];
+
+        // ==================== I18N ====================
+        async function loadTranslations(lang) {
+            try {
+                const response = await fetch(`i18n/${lang}.json`);
+                translations = await response.json();
+            } catch (e) {
+                // Fallback to English
+                const response = await fetch('i18n/en.json');
+                translations = await response.json();
+            }
+            applyTranslations();
+        }
+
+        function applyTranslations() {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[key]) {
+                    el.textContent = translations[key];
+                }
+            });
+            
+            // RTL support
+            const isRTL = currentLanguage === 'ar' || currentLanguage === 'ku';
+            document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
+            document.documentElement.classList.toggle('rtl', isRTL);
+        }
+
+        function changeLanguage() {
+            const select = document.getElementById('lang-select');
+            currentLanguage = select.value;
+            localStorage.setItem('predictcup_lang', currentLanguage);
+            loadTranslations(currentLanguage);
+        }
+
+        // ==================== TELEGRAM AUTH ====================
+        async function initTelegramAuth() {
+            // Telegram WebApp
+            if (window.Telegram && window.Telegram.WebApp) {
+                const tg = window.Telegram.WebApp;
+                tg.ready();
+                tg.expand();
+                
+                const initData = tg.initData;
+                if (!initData) {
+                    showToast('Please open this app inside Telegram', true);
+                    return;
+                }
+                
+                try {
+                    const res = await fetch(`${API_BASE}/auth/verify`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ initData })
+                    });
+                    
+                    const data = await res.json();
+                    if (data.success) {
+                        currentUser = data.user;
+                        updateUserUI();
+                        await loadInitialData();
+                    } else {
+                        showToast(data.error || 'Authentication failed', true);
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showToast('Connection error. Check backend.', true);
+                }
+            } else {
+                // Demo mode for testing outside Telegram
+                showToast('Running in demo mode (no Telegram auth)', true);
+                currentUser = {
+                    telegram_id: '123456789',
+                    username: 'demo_user',
+                    first_name: 'Demo',
+                    xp: 245,
+                    level: 3,
+                    streak_count: 4,
+                    role: 'USER'
+                };
+                updateUserUI();
+                await loadInitialData();
+            }
+        }
+
+        function updateUserUI() {
+            if (!currentUser) return;
+            
+            const avatar = document.getElementById('user-avatar');
+            avatar.innerHTML = currentUser.username 
+                ? currentUser.username[0].toUpperCase() 
+                : currentUser.first_name[0].toUpperCase();
+            
+            // Show admin section if admin
+            if (currentUser.role === 'ADMIN') {
+                document.getElementById('admin-section').classList.remove('hidden');
+            }
+        }
+
+        // ==================== DATA LOADING ====================
+        async function loadInitialData() {
+            await loadMatches();
+            await loadMyLeagues();
+        }
+
+        async function loadMatches() {
+            const container = document.getElementById('matches-list');
+            container.innerHTML = '<div class="text-center py-8 text-slate-400">Loading matches...</div>';
+            
+            try {
+                const res = await fetch(`${API_BASE}/matches`, {
+                    headers: { 'x-telegram-init-data': getInitData() }
+                });
+                matchesData = await res.json();
+                
+                renderMatches(matchesData);
+            } catch (err) {
+                container.innerHTML = '<div class="text-center py-8 text-red-400">Failed to load matches</div>';
+            }
+        }
+
+        function renderMatches(matches) {
+            const container = document.getElementById('matches-list');
+            container.innerHTML = '';
+            
+            if (!matches || matches.length === 0) {
+                document.getElementById('no-matches').classList.remove('hidden');
+                return;
+            }
+            document.getElementById('no-matches').classList.add('hidden');
+            
+            matches.forEach(match => {
+                const isLocked = match.status !== 'SCHEDULED';
+                const userPred = match.user_prediction;
+                
+                const card = document.createElement('div');
+                card.className = `match-card bg-white border border-slate-200 rounded-3xl p-4 shadow-sm`;
+                
+                const statusClass = {
+                    'SCHEDULED': 'status-scheduled',
+                    'LOCKED': 'status-locked',
+                    'LIVE': 'status-live',
+                    'FINISHED': 'status-finished',
+                    'CANCELED': 'bg-gray-100 text-gray-500'
+                }[match.status] || 'bg-gray-100';
+                
+                let predictionHTML = '';
+                if (userPred) {
+                    predictionHTML = `
+                        <div class="mt-3 pt-3 border-t flex justify-between items-center text-sm">
+                            <div>
+                                <span class="font-semibold">${userPred.predicted_home_score} - ${userPred.predicted_away_score}</span>
+                            </div>
+                            <div class="text-emerald-600 font-semibold">
+                                ${userPred.points_awarded > 0 ? `+${userPred.points_awarded} pts` : 'Pending'}
+                            </div>
+                        </div>
+                    `;
+                } else if (!isLocked) {
+                    predictionHTML = `
+                        <button onclick="openPredictionModal(${match.id}, '${match.home_team}', '${match.away_team}')" 
+                                class="mt-3 w-full py-2.5 text-sm bg-secondary text-primary font-semibold rounded-2xl hover:bg-amber-300 transition-colors">
+                            Predict Now
+                        </button>
+                    `;
+                } else {
+                    predictionHTML = `<div class="mt-3 text-xs text-center text-slate-400">Predictions locked</div>`;
+                }
+                
+                const timeStr = new Date(match.start_time).toLocaleString([], { 
+                    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                });
+                
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2.5 py-0.5 text-xs font-medium rounded-full ${statusClass}">
+                                    ${match.status}
+                                </span>
+                                <span class="text-xs text-slate-500 match-time">${timeStr}</span>
+                            </div>
+                            
+                            <div class="font-semibold text-lg tracking-tight">
+                                ${match.home_team} <span class="text-slate-400 font-normal">vs</span> ${match.away_team}
+                            </div>
+                            
+                            ${match.home_score !== null && match.away_score !== null ? 
+                                `<div class="text-2xl font-bold mt-1 text-primary">${match.home_score} - ${match.away_score}</div>` : ''}
+                        </div>
+                        
+                        <div class="text-right">
+                            ${match.insights ? `<button onclick="showInsights(${match.id})" class="text-xs px-3 py-1 bg-slate-100 rounded-full">💡</button>` : ''}
+                        </div>
+                    </div>
+                    
+                    ${predictionHTML}
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        async function refreshMatches() {
+            await loadMatches();
+            showToast('Matches refreshed');
+        }
+
+        // ==================== PREDICTIONS ====================
+        function openPredictionModal(matchId, homeTeam, awayTeam) {
+            currentMatchId = matchId;
+            document.getElementById('modal-match-title').innerHTML = `${homeTeam} vs ${awayTeam}`;
+            document.getElementById('home-score').value = 1;
+            document.getElementById('away-score').value = 1;
+            document.getElementById('prediction-modal').classList.remove('hidden');
+        }
+
+        function closePredictionModal() {
+            document.getElementById('prediction-modal').classList.add('hidden');
+        }
+
+        async function submitPrediction() {
+            const home = parseInt(document.getElementById('home-score').value);
+            const away = parseInt(document.getElementById('away-score').value);
+            
+            if (isNaN(home) || isNaN(away)) {
+                showToast('Please enter valid scores');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`${API_BASE}/predictions`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'x-telegram-init-data': getInitData()
+                    },
+                    body: JSON.stringify({
+                        match_id: currentMatchId,
+                        predicted_home_score: home,
+                        predicted_away_score: away
+                    })
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    closePredictionModal();
+                    showToast(translations.prediction_saved || 'Prediction saved!');
+                    await loadMatches();
+                } else {
+                    showToast(data.error || 'Failed to save');
+                }
+            } catch (err) {
+                showToast('Network error');
+            }
+        }
+
+        // ==================== LEAGUES ====================
+        async function loadMyLeagues() {
+            try {
+                const res = await fetch(`${API_BASE}/leagues/my`, {
+                    headers: { 'x-telegram-init-data': getInitData() }
+                });
+                const leagues = await res.json();
+                
+                const container = document.getElementById('my-leagues-list');
+                container.innerHTML = '';
+                
+                if (leagues.length === 0) {
+                    container.innerHTML = `<div class="text-center py-4 text-sm text-slate-400">No leagues yet. Create or join one!</div>`;
+                    return;
+                }
+                
+                leagues.forEach(league => {
+                    const div = document.createElement('div');
+                    div.className = `flex justify-between items-center bg-white border border-slate-200 p-4 rounded-2xl`;
+                    div.innerHTML = `
+                        <div>
+                            <div class="font-semibold">${league.name}</div>
+                            <div class="text-xs text-slate-500">${league.member_count} members • ${league.role}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-emerald-600 font-mono">${league.invite_code}</div>
+                            <button onclick="copyInvite('${league.invite_code}')" class="text-xs mt-1 text-primary">Copy</button>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+            } catch (e) {}
+        }
+
+        function showCreateLeagueModal() {
+            document.getElementById('create-league-modal').classList.remove('hidden');
+        }
+        
+        function closeCreateLeagueModal() {
+            document.getElementById('create-league-modal').classList.add('hidden');
+        }
+        
+        async function createLeague() {
+            const name = document.getElementById('league-name').value.trim();
+            if (!name) return showToast('Enter league name');
+            
+            try {
+                const res = await fetch(`${API_BASE}/leagues`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'x-telegram-init-data': getInitData()
+                    },
+                    body: JSON.stringify({ name })
+                });
+                
+                const data = await res.json();
+                closeCreateLeagueModal();
+                showToast('League created!');
+                await loadMyLeagues();
+            } catch (e) {
+                showToast('Failed to create league');
+            }
+        }
+        
+        function showJoinLeagueModal() {
+            document.getElementById('join-league-modal').classList.remove('hidden');
+        }
+        
+        function closeJoinLeagueModal() {
+            document.getElementById('join-league-modal').classList.add('hidden');
+        }
+        
+        async function joinLeague() {
+            const code = document.getElementById('invite-code').value.trim().toUpperCase();
+            if (!code) return;
+            
+            try {
+                const res = await fetch(`${API_BASE}/leagues/join`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'x-telegram-init-data': getInitData()
+                    },
+                    body: JSON.stringify({ invite_code: code })
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    closeJoinLeagueModal();
+                    showToast('Joined league!');
+                    await loadMyLeagues();
+                } else {
+                    showToast(data.error);
+                }
+            } catch (e) {
+                showToast('Failed to join');
+            }
+        }
+        
+        function copyInvite(code) {
+            navigator.clipboard.writeText(code).then(() => {
+                showToast('Invite code copied!');
+            });
+        }
+
+        // ==================== LEADERBOARDS ====================
+        async function loadGlobalLeaderboard() {
+            const container = document.getElementById('leaderboard-list');
+            container.innerHTML = '<div class="text-center py-4">Loading...</div>';
+            
+            try {
+                const res = await fetch(`${API_BASE}/leaderboard/global`, {
+                    headers: { 'x-telegram-init-data': getInitData() }
+                });
+                const data = await res.json();
+                
+                container.innerHTML = '';
+                
+                data.forEach((user, index) => {
+                    const row = document.createElement('div');
+                    row.className = `leaderboard-row flex items-center justify-between px-4 py-3 rounded-2xl border border-slate-100`;
+                    
+                    const medal = index < 3 ? ['🥇','🥈','🥉'][index] : `${index + 1}.`;
+                    
+                    row.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 text-center font-mono text-sm">${medal}</div>
+                            <div>
+                                <div class="font-semibold">${user.display_name}</div>
+                                <div class="text-xs text-slate-500">Level ${user.level} • ${user.streak_count} streak</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-bold text-primary">${user.xp} XP</div>
+                        </div>
+                    `;
+                    container.appendChild(row);
+                });
+            } catch (e) {
+                container.innerHTML = '<div class="text-red-400">Failed to load leaderboard</div>';
+            }
+        }
+
+        async function loadMyLeaguesForLeaderboard() {
+            // For MVP: show a simple message or load first league
+            showToast('Select a league from Leagues tab first (MVP limitation)');
+            // In full version would show league selection
+        }
+
+        // ==================== PROFILE ====================
+        function showProfile() {
+            switchTab('profile');
+        }
+
+        async function loadProfile() {
+            const container = document.getElementById('profile-content');
+            
+            if (!currentUser) {
+                container.innerHTML = `<div class="text-center py-8">${translations.login_required || 'Login required'}</div>`;
+                return;
+            }
+            
+            const displayName = currentUser.username ? `@${currentUser.username}` : currentUser.first_name || 'Player';
+            
+            container.innerHTML = `
+                <div class="text-center mb-6">
+                    <div class="w-20 h-20 mx-auto bg-gradient-to-br from-primary to-blue-700 rounded-full flex items-center justify-center text-white text-4xl mb-3">
+                        ${displayName[0]}
+                    </div>
+                    <h2 class="text-2xl font-bold">${displayName}</h2>
+                    <p class="text-sm text-slate-500">Telegram ID: ${currentUser.telegram_id}</p>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-3 mb-6">
+                    <div class="bg-slate-50 rounded-2xl p-4 text-center">
+                        <div class="text-3xl font-bold text-primary">${currentUser.xp}</div>
+                        <div class="text-xs text-slate-500 mt-1">XP</div>
+                    </div>
+                    <div class="bg-slate-50 rounded-2xl p-4 text-center">
+                        <div class="text-3xl font-bold text-primary">${currentUser.level}</div>
+                        <div class="text-xs text-slate-500 mt-1">Level</div>
+                    </div>
+                    <div class="bg-slate-50 rounded-2xl p-4 text-center">
+                        <div class="text-3xl font-bold text-primary">${currentUser.streak_count}</div>
+                        <div class="text-xs text-slate-500 mt-1">Streak</div>
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    <button onclick="shareOnTelegram()" 
+                            class="px-8 py-3 bg-secondary text-primary font-semibold rounded-2xl text-sm flex items-center gap-2 mx-auto">
+                        📤 <span data-i18n="share">Share on Telegram</span>
+                    </button>
+                </div>
+            `;
+            
+            applyTranslations();
+        }
+
+        function shareOnTelegram() {
+            if (window.Telegram && window.Telegram.WebApp) {
+                const tg = window.Telegram.WebApp;
+                tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent('Join me on PREDICTCUP 2026!')}`);
+            } else {
+                navigator.clipboard.writeText(window.location.href);
+                showToast('Link copied!');
+            }
+        }
+
+        // ==================== ADMIN ====================
+        async function showAdminMatches() {
+            const res = await fetch(`${API_BASE}/admin/matches`, {
+                headers: { 'x-telegram-init-data': getInitData() }
+            });
+            const matches = await res.json();
+            
+            let html = `<h3 class="font-bold mb-3">Admin: Manage Matches</h3>`;
+            matches.forEach(m => {
+                html += `
+                    <div class="border p-3 rounded-xl mb-2 text-sm">
+                        <div>${m.home_team} vs ${m.away_team}</div>
+                        <div class="text-xs text-slate-500">${m.status} • ${new Date(m.start_time).toLocaleDateString()}</div>
+                        
+                        <div class="mt-2 flex gap-2">
+                            <button onclick="updateMatchStatus(${m.id}, 'FINISHED', 2, 1)" class="text-xs px-3 py-1 bg-emerald-100 text-emerald-700 rounded">Set 2-1 Finished</button>
+                            <button onclick="updateMatchStatus(${m.id}, 'FINISHED', 1, 1)" class="text-xs px-3 py-1 bg-emerald-100 text-emerald-700 rounded">Set 1-1</button>
+                            <button onclick="triggerScoring(${m.id})" class="text-xs px-3 py-1 bg-amber-100 text-amber-700 rounded">Recalculate</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black/70 z-[200] flex items-center justify-center p-4';
+            modal.innerHTML = `
+                <div class="bg-white max-w-md w-full rounded-3xl p-6 max-h-[80vh] overflow-auto">
+                    ${html}
+                    <button onclick="this.closest('.fixed').remove()" class="mt-4 w-full py-3 border rounded-2xl">Close</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        async function updateMatchStatus(matchId, status, home, away) {
+            try {
+                await fetch(`${API_BASE}/matches/${matchId}`, {
+                    method: 'PATCH',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'x-telegram-init-data': getInitData()
+                    },
+                    body: JSON.stringify({ status, home_score: home, away_score: away })
+                });
+                showToast('Match updated');
+                document.querySelectorAll('.fixed').forEach(el => el.remove());
+                await loadMatches();
+            } catch (e) {}
+        }
+
+        async function triggerScoring(matchId) {
+            await fetch(`${API_BASE}/admin/calculate-scores/${matchId}`, {
+                method: 'POST',
+                headers: { 'x-telegram-init-data': getInitData() }
+            });
+            showToast('Scoring triggered');
+        }
+
+        async function showAdminAnalytics() {
+            const res = await fetch(`${API_BASE}/admin/analytics`, {
+                headers: { 'x-telegram-init-data': getInitData() }
+            });
+            const stats = await res.json();
+            
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black/70 z-[200] flex items-center justify-center p-4';
+            modal.innerHTML = `
+                <div class="bg-white w-full max-w-sm rounded-3xl p-6">
+                    <h3 class="font-bold mb-4">Analytics</h3>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between"><span>Total Users</span> <span class="font-bold">${stats.total_users}</span></div>
+                        <div class="flex justify-between"><span>Total Predictions</span> <span class="font-bold">${stats.total_predictions}</span></div>
+                        <div class="flex justify-between"><span>Total Matches</span> <span class="font-bold">${stats.total_matches}</span></div>
+                        <div class="flex justify-between"><span>Active (7d)</span> <span class="font-bold">${stats.active_users_7d}</span></div>
+                    </div>
+                    <button onclick="this.closest('.fixed').remove()" class="mt-6 w-full py-3 bg-slate-900 text-white rounded-2xl">Close</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        // ==================== UTILS ====================
+        function getInitData() {
+            if (window.Telegram && window.Telegram.WebApp) {
+                return window.Telegram.WebApp.initData;
+            }
+            return ''; // Demo mode
+        }
+
+        function switchTab(tab) {
+            // Hide all
+            document.querySelectorAll('[id^="content-"]').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.remove('active'));
+            
+            // Show selected
+            document.getElementById(`content-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            
+            if (tab === 'leaderboard') {
+                loadGlobalLeaderboard();
+            } else if (tab === 'profile') {
+                loadProfile();
+            } else if (tab === 'leagues') {
+                loadMyLeagues();
+            }
+        }
+
+        function showToast(message, error = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-2xl text-sm shadow-xl z-[200] ${error ? 'bg-red-600' : 'bg-slate-900'} text-white`;
+            toast.classList.remove('hidden');
+            
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 2800);
+        }
+
+        async function showInsights(matchId) {
+            try {
+                const res = await fetch(`${API_BASE}/insights/${matchId}`, {
+                    headers: { 'x-telegram-init-data': getInitData() }
+                });
+                const data = await res.json();
+                
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-black/60 z-[200] flex items-end justify-center';
+                modal.innerHTML = `
+                    <div class="bg-white w-full max-w-[480px] rounded-t-3xl p-6">
+                        <div class="flex justify-between mb-3">
+                            <span class="font-semibold">${data.match}</span>
+                            <button onclick="this.closest('.fixed').remove()" class="text-xl">×</button>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-2xl text-sm">
+                            💡 ${data.preview}
+                        </div>
+                        <div class="text-[10px] text-center mt-3 text-slate-400">Static template insight • No AI calls</div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            } catch (e) {}
+        }
+
+        // ==================== PWA ====================
+        function registerPWA() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('sw.js').catch(() => {});
+            }
+            
+            // Install prompt
+            let deferredPrompt;
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                // Could show install button
+            });
+        }
+
+        // ==================== INIT ====================
+        async function init() {
+            // Load saved language
+            const savedLang = localStorage.getItem('predictcup_lang') || 'en';
+            currentLanguage = savedLang;
+            document.getElementById('lang-select').value = savedLang;
+            
+            await loadTranslations(savedLang);
+            
+            await initTelegramAuth();
+            
+            // Default tab
+            switchTab('matches');
+            
+            registerPWA();
+            
+            // Auto-refresh matches every 60s
+            setInterval(() => {
+                if (!document.getElementById('content-matches').classList.contains('hidden')) {
+                    loadMatches();
+                }
+            }, 60000);
+            
+            // Demo seed message
+            if (!window.Telegram || !window.Telegram.WebApp.initData) {
+                console.log('%c[Demo Mode] Open in Telegram for full auth', 'color:#64748b');
+            }
+        }
+
+        // Boot the app
+        window.onload = init;
+        
+        // Expose for debugging
+        window.PREDICTCUP = { switchTab, loadMatches };
+    </script>
+</body>
+</html>
