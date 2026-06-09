@@ -4,15 +4,9 @@ services:
     runtime: node
     region: oregon
     plan: free
-<<<<<<< Updated upstream
-    buildCommand: npm install && npm run build && npx prisma generate
-    startCommand: npm run start:prod
-=======
-
-    buildCommand: cd backend && npm install && npm run prisma:generate
-    startCommand: cd backend && npm start
-
->>>>>>> Stashed changes
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
     envVars:
       - key: DATABASE_URL
         fromDatabase:
