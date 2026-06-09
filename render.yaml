@@ -2,12 +2,11 @@ services:
   - type: web
     name: predictcup-backend
     runtime: node
+    rootDir: backend
     region: oregon
     plan: free
-
-    buildCommand: cd backend && npm install && npm run prisma:generate
-    startCommand: cd backend && npm start
-
+    buildCommand: npm install && npx prisma generate
+    startCommand: npm run start:prod
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -17,8 +16,8 @@ services:
         sync: false
       - key: NODE_ENV
         value: production
-      - key: FRONTEND_URL
-        value: https://your-frontend.vercel.app
+      - key: PORT
+        value: 10000
 
 databases:
   - name: predictcup-db
