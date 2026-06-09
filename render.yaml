@@ -2,14 +2,11 @@ services:
   - type: web
     name: predictcup-backend
     runtime: node
+    rootDir: backend
     region: oregon
     plan: free
-
-    rootDir: backend   # 👈 THIS IS THE FIX
-
     buildCommand: npm install && npm run prisma:generate
     startCommand: npm start
-
     envVars:
       - key: DATABASE_URL
         fromDatabase:
