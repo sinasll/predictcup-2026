@@ -3,15 +3,12 @@
   "version": "1.0.0",
   "description": "PREDICTCUP 2026 Backend - Telegram Prediction Platform",
   "main": "src/index.js",
-  "scripts": {
-    "dev": "nodemon src/index.js",
-    "start": "node src/index.js",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate deploy",
-    "prisma:studio": "prisma studio",
-    "build": "prisma generate",
-    "postinstall": "prisma generate"
-  },
+"scripts": {
+  "build": "nest build",
+  "start": "node dist/main.js",
+  "start:prod": "node dist/main.js",
+  "prisma:generate": "prisma generate"
+},
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "cors": "^2.8.5",
