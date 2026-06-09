@@ -4,8 +4,12 @@ services:
     runtime: node
     region: oregon
     plan: free
+
+    rootDir: backend   # 👈 THIS IS THE FIX
+
     buildCommand: npm install && npm run prisma:generate
     startCommand: npm start
+
     envVars:
       - key: DATABASE_URL
         fromDatabase:
